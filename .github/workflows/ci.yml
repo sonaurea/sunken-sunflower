@@ -35,6 +35,11 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          # Build from source using the system Go 1.26 compiler so the
+          # resulting binary is compatible with the project's go 1.26.4
+          # directive in go.mod. The pre-built binary (default) is compiled
+          # with an older Go version and will fail typecheck on Go 1.26 code.
+          install-mode: "goinstall"
           args: --timeout=5m ./...
 
       - name: Install staticcheck
