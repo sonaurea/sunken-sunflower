@@ -72,7 +72,7 @@ func (tm *TurnManager) StartPlayerTurn() {
 	tm.HasAttacked = false
 	tm.MoveRange = nil
 	tm.AttackRange = nil
-	tm.Log = append(tm.Log, "✦ Your turn")
+	tm.Log = append(tm.Log, "* Your turn")
 }
 
 // EndPlayerTurn ends the player's turn and starts enemy phase.

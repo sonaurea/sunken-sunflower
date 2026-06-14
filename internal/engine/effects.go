@@ -318,7 +318,7 @@ func (sem *StatusEffectManager) Draw(screen *ebiten.Image, x, y float64) {
 		case "heal":
 			label = "💚"
 		case "buff":
-			label = "✨"
+			label = "~"
 		default:
 			label = "?"
 		}

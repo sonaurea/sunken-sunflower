@@ -207,7 +207,7 @@ func (s *DreamScene) Draw(screen *ebiten.Image, g *engine.Game) {
 			for i := 0; i < int(g.GameTime()*2)%4; i++ {
 				ellipsis += "."
 			}
-			engine.DrawText(screen, "✦"+ellipsis, tx, ty, engine.ColDreamPurple)
+			engine.DrawText(screen, "*"+ellipsis, tx, ty, engine.ColDreamPurple)
 		}
 	} else {
 		awake := "The dream fades, but the love remains..."

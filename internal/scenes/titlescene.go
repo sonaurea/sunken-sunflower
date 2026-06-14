@@ -218,7 +218,7 @@ func (s *TitleScene) Draw(screen *ebiten.Image, g *engine.Game) {
 			clr := menuClr
 			if i == s.selectedItem {
 				clr = engine.ColSunflower
-				items[i] = "▶ " + item[2:]
+				items[i] = "-> " + item[2:]
 			}
 			engine.DrawText(screen, items[i], engine.CenterX(items[i], engine.ScreenWidth), y, clr)
 		}
@@ -232,7 +232,7 @@ func (s *TitleScene) Draw(screen *ebiten.Image, g *engine.Game) {
 			clr := menuClr
 			if i == s.selectedItem {
 				clr = engine.ColSunflower
-				items[i] = "▶ " + item[2:]
+				items[i] = "-> " + item[2:]
 			}
 			engine.DrawText(screen, items[i], engine.CenterX(items[i], engine.ScreenWidth), y, clr)
 		}

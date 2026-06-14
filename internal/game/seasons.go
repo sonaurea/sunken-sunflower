@@ -24,7 +24,7 @@ const (
 func (s Season) String() string {
 	switch s {
 	case SeasonDry:
-		return "☀ Dry Season"
+		return "[Sun] Dry Season"
 	case SeasonWet:
 		return "🌧 Wet Season"
 	case SeasonHurricane:
@@ -358,12 +358,12 @@ func (sd *SeasonData) String() string {
 // FormatSeasonSummary returns a nice multi-line summary for the UI.
 func (sd *SeasonData) FormatSeasonSummary() []string {
 	summary := []string{
-		fmt.Sprintf("☀ Day %d — %s", sd.Day, sd.Current.String()),
-		fmt.Sprintf("🌡 %.0f°F | %s", sd.Temperature, sd.Weather),
+		fmt.Sprintf("[Sun] Day %d — %s", sd.Day, sd.Current.String()),
+		fmt.Sprintf("[T] %.0f°F | %s", sd.Temperature, sd.Weather),
 	}
 	if sd.IsNight {
-		summary[0] = fmt.Sprintf("🌙 Night %d — %s", sd.Day, sd.Current.String())
-		summary = append(summary, "✨ Bioluminescent creatures are active!")
+		summary[0] = fmt.Sprintf("[Moon] Night %d — %s", sd.Day, sd.Current.String())
+		summary = append(summary, "~ Bioluminescent creatures are active!")
 	}
 	return summary
 }

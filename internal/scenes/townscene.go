@@ -158,7 +158,7 @@ func (s *TownScene) Enter(g *engine.Game) {
 	}
 
 	if !s.story.HasFlag("entered_town") {
-		s.floatText.Add("✦ Sunken Beach welcomes you, my sunrise ✦", 300, 200, engine.ColSunflower)
+		s.floatText.Add("* Sunken Beach welcomes you, my sunrise *", 300, 200, engine.ColSunflower)
 		s.story.SetFlag("entered_town")
 	}
 }
@@ -293,7 +293,7 @@ func (s *TownScene) handleShopInteraction(input *engine.Input, g *engine.Game) {
 		if s.state.TotalGold >= item.Cost {
 			s.state.TotalGold -= item.Cost
 			s.state.AddResource(item.Resource, item.Count)
-			s.floatText.Add(fmt.Sprintf("✨ %s ✨", item.Name), 400, 360, engine.ColGreen)
+			s.floatText.Add(fmt.Sprintf("~ %s ~", item.Name), 400, 360, engine.ColGreen)
 			s.particles.EmitExplosion(400, 360, 8, engine.ColSunflower, 50, 0.5)
 		} else {
 			s.floatText.Add("Not enough gold, my sunrise...", 400, 380, engine.ColRed)
@@ -383,7 +383,7 @@ func (s *TownScene) handleQuestInteraction(input *engine.Input, g *engine.Game) 
 			if q.RewardItem != "" {
 				s.state.AddResource(q.RewardItem, q.RewardCount)
 			}
-			s.floatText.Add(fmt.Sprintf("✦ Royalty achieved! +%d gold ✦", q.RewardGold), 400, 360, engine.ColSunflower)
+			s.floatText.Add(fmt.Sprintf("* Royalty achieved! +%d gold *", q.RewardGold), 400, 360, engine.ColSunflower)
 			s.particles.EmitExplosion(400, 360, 10, engine.ColSunflower, 60, 0.6)
 		} else {
 			s.floatText.Add("Keep exploring, my king/queen...", 400, 380, engine.ColBeachPink)
@@ -474,7 +474,7 @@ func (s *TownScene) handleUpgradeInteraction(input *engine.Input, g *engine.Game
 				s.state.RemoveResource(res, cost)
 			}
 			s.state.UpgradeBuilding(upg.ID)
-			s.floatText.Add(fmt.Sprintf("✦ %s ✨", upg.Name), 400, 360, engine.ColSunset)
+			s.floatText.Add(fmt.Sprintf("* %s ~", upg.Name), 400, 360, engine.ColSunset)
 			s.particles.EmitExplosion(400, 360, 12, engine.ColSunset, 70, 0.5)
 			switch upg.StatEffect {
 			case "max_health":
@@ -554,7 +554,7 @@ func (s *TownScene) handleTamerInteraction(input *engine.Input, g *engine.Game) 
 			comp := entities.NewCompanion(id, s.player.X-40, s.player.Y, opt.Type)
 			g.EntityManager().Add(comp)
 			s.state.ActiveCompanions = append(s.state.ActiveCompanions, id)
-			s.floatText.Add(fmt.Sprintf("✦ %s bonded with you ✦", opt.Name), 400, 360, engine.ColBio)
+			s.floatText.Add(fmt.Sprintf("* %s bonded with you *", opt.Name), 400, 360, engine.ColBio)
 			s.particles.EmitExplosion(400, 360, 15, engine.ColBio, 80, 0.6)
 		} else {
 			s.floatText.Add("Gather more resources for the bond...", 400, 380, engine.ColRed)
@@ -593,7 +593,7 @@ func (s *TownScene) Draw(screen *ebiten.Image, g *engine.Game) {
 	engine.DrawRect(screen, 100+shakeX, 150+shakeY, 100, 90, engine.ColBrown)
 	engine.DrawRect(screen, 130+shakeX, 170+shakeY, 40, 40, engine.ColSunflower)
 	engine.DrawPulsingBorder(screen, 100, 150, 100, 90, g.GameTime(), engine.ColSunflower, 2)
-	engine.DrawText(screen, "✦ SUNRISE ✦", 108, 140, engine.ColSunflower)
+	engine.DrawText(screen, "* SUNRISE *", 108, 140, engine.ColSunflower)
 	engine.DrawOrbitIndicator(screen, 150, 240, 8, g.GameTime(), engine.ColSunflower)
 
 	// Royal's Quest Board — "Like royalties, we're kings and queens"
@@ -655,7 +655,7 @@ func (s *TownScene) Draw(screen *ebiten.Image, g *engine.Game) {
 	engine.DrawRect(screen, 0, 0, 350, 28, engine.ColMidnight)
 	engine.DrawText(screen, hudStr, 10, 20, engine.ColWhite)
 
-	timeStr := fmt.Sprintf("☀ Depth Record: %d", s.state.MaxDepth)
+	timeStr := fmt.Sprintf("[Sun] Depth Record: %d", s.state.MaxDepth)
 	engine.DrawText(screen, timeStr, engine.ScreenWidth-200, 20, engine.ColBeachPink)
 
 	engine.DrawText(screen, "WASD: Move | Shift: Dash | E: Interact | ESC: Back",
@@ -693,7 +693,7 @@ func (s *TownScene) drawShopMenu(screen *ebiten.Image, px, py float64) {
 		y := py + 80 + float64(i)*35
 		marker := "  "
 		if i == s.interaction.Selected {
-			marker = "▶ "
+			marker = "-> "
 			engine.DrawText(screen, marker, int(px)+20, int(y), engine.ColSunflower)
 		}
 		engine.DrawText(screen, fmt.Sprintf("%s %s — 💰 %d", marker, item.Name, item.Cost),
@@ -709,7 +709,7 @@ func (s *TownScene) drawQuestMenu(screen *ebiten.Image, px, py float64) {
 		y := py + 60 + float64(i)*45
 		marker := "  "
 		if i == s.interaction.Selected {
-			marker = "▶ "
+			marker = "-> "
 		}
 		status := ""
 		if q.Completed {
@@ -730,7 +730,7 @@ func (s *TownScene) drawUpgradeMenu(screen *ebiten.Image, px, py float64) {
 		y := py + 55 + float64(i)*40
 		marker := "  "
 		if i == s.interaction.Selected {
-			marker = "▶ "
+			marker = "-> "
 		}
 		level := s.state.BuildingLevel(upg.ID)
 		maxStr := ""
@@ -760,7 +760,7 @@ func (s *TownScene) drawTamerMenu(screen *ebiten.Image, px, py float64) {
 		y := py + 80 + float64(i)*40
 		marker := "  "
 		if i == s.interaction.Selected {
-			marker = "▶ "
+			marker = "-> "
 		}
 		engine.DrawText(screen, fmt.Sprintf("%s %s", marker, opt.Name),
 			int(px)+40, int(y), engine.ColWhite)

@@ -101,7 +101,7 @@ func (sm *SettingsMenu) Draw(screen *ebiten.Image) {
 		return
 	}
 	DrawRect(screen, 0, 0, float64(ScreenWidth), float64(ScreenHeight), color.RGBA{0, 0, 0, 200})
-	title := "⚙ Settings"
+	title := "[Set] Settings"
 	DrawText(screen, title, CenterX(title, ScreenWidth), 60, ColSunflower)
 	startY := 120
 	values := []string{
@@ -116,7 +116,7 @@ func (sm *SettingsMenu) Draw(screen *ebiten.Image) {
 		m := "  "
 		clr := ColWhite
 		if i == sm.selected {
-			m = "▶ "
+			m = "-> "
 			clr = ColSunflower
 		}
 		DrawText(screen, m+opt, 300, y, clr)

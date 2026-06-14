@@ -269,7 +269,7 @@ func (db *DialogueBox) Draw(screen *ebiten.Image) {
 	if db.doneTyping && !db.ChoiceActive {
 		blink := math.Sin(float64(time.Since(db.startTime).Milliseconds())/200.0) > 0
 		if blink {
-			DrawText(screen, "▼", int(db.BoxX+db.BoxW-30), int(db.BoxY+db.BoxH-20), ColSunflower)
+			DrawText(screen, "v", int(db.BoxX+db.BoxW-30), int(db.BoxY+db.BoxH-20), ColSunflower)
 		}
 	}
 
@@ -280,7 +280,7 @@ func (db *DialogueBox) Draw(screen *ebiten.Image) {
 			marker := "  "
 			clr := ColWhite
 			if i == db.SelectedChoice {
-				marker = "▶ "
+				marker = "-> "
 				clr = ColSunflower
 			}
 			DrawText(screen, marker+choice.Text, int(db.BoxX+db.Padding+10), int(choiceY)+i*25, clr)
