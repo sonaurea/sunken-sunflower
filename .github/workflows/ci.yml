@@ -1,0 +1,106 @@
+# ─── Sunken Sunflower — Continuous Integration ──────────────────────
+# Free on GitHub Actions (public repos) / 2000 min free for private.
+# Every push & PR is tested, linted, and gated.
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Go vet (static analysis)
+        run: go vet ./...
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m ./...
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+      - name: Check formatting
+        run: |
+          gofmt=$(gofmt -l .)
+          if [ -n "$gofmt" ]; then
+            echo "Unformatted files:"
+            echo "$gofmt"
+            exit 1
+          fi
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Run all tests
+        run: go test ./... -v -count=1 -timeout=60s
+
+      - name: Test with race detector
+        run: go test ./... -race -count=1 -timeout=120s
+
+      - name: Generate coverage report
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic -count=1
+
+      - name: Check coverage threshold (≥70%)
+        run: |
+          go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//' | \
+          awk '{if ($1 < 70) {print "Coverage " $1 "% < 70% — FAIL"; exit 1}}'
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, windows, darwin]
+        arch: [amd64]
+        include:
+          - os: darwin
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Build binary
+        run: |
+          ext=""
+          if [ "${{ matrix.os }}" = "windows" ]; then ext=".exe"; fi
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} \
+          go build -ldflags="-s -w" -o "sunken-sunflower-${{ matrix.os }}-${{ matrix.arch }}$ext" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.os }}-${{ matrix.arch }}
+          path: sunken-sunflower-${{ matrix.os }}-${{ matrix.arch }}*

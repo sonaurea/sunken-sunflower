@@ -1,0 +1,79 @@
+{
+    "name": "Crab Enemy Mod",
+    "version": "1.0",
+    "description": "Adds a crab enemy to the well dungeon",
+    "entities": [
+        {
+            "type": "enemy",
+            "id": "crab",
+            "sprite": "procedural:circle",
+            "color": "#FF4444",
+            "size": [
+                24,
+                24
+            ],
+            "health": 30,
+            "speed": 120,
+            "damage": 10,
+            "drop_table": [
+                {
+                    "item": "moon_sand",
+                    "chance": 0.6,
+                    "count": [
+                        1,
+                        3
+                    ]
+                },
+                {
+                    "item": "starfruit",
+                    "chance": 0.3,
+                    "count": [
+                        1,
+                        1
+                    ]
+                }
+            ],
+            "behaviour": {
+                "type": "charge",
+                "cooldown": 2.0,
+                "range": 200
+            }
+        }
+    ],
+    "rooms": [
+        {
+            "id": "crab_arena",
+            "enemies": [
+                "crab",
+                "crab"
+            ],
+            "layout": "open",
+            "size": [
+                400,
+                300
+            ]
+        }
+    ],
+    "items": [
+        {
+            "id": "crab_shell",
+            "name": "Crab Shell",
+            "description": "A sturdy shell from a deep well crab",
+            "rarity": "common",
+            "value": 5
+        }
+    ],
+    "dialogues": [
+        {
+            "id": "crab_intro",
+            "lines": [
+                "A large crab scuttles toward you!",
+                "Its shell glows with bioluminescent algae..."
+            ]
+        }
+    ],
+    "colors": {
+        "CrabRed": "#CC3333",
+        "CrabAlgae": "#00FFAA"
+    }
+}

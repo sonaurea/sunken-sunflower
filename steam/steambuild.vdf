@@ -1,0 +1,79 @@
+// ─── Steamworks Build Configuration ─────────────────────────────────
+// Place this file in your Steamworks SDK tools directory.
+// Usage: steamcmd +run_app_build steam/steambuild.vdf
+
+"AppBuild"
+{
+    // Your Steam App ID
+    "AppID" "0"
+
+    // Descriptive name for this build
+    "Desc" "Sunken Sunflower v1.0.0"
+
+    // Root content directory (relative to this file)
+    "ContentRoot" "../dist/"
+
+    // Build output directory (relative to this file)
+    "BuildOutput" "../steam-output/"
+
+    // Local content server (use Steam's default)
+    "SetLive" ""
+
+    // Pre-build scripts
+    "PreBuildStep" [
+        "cd .. && sh scripts/build-all.sh"
+    ]
+
+    // Depots configuration
+    "Depots"
+    {
+        // Your Steam Depot ID for Linux
+        "0"
+        {
+            "FileMapping"
+            {
+                // Linux depot: use the tar.gz contents
+                "LocalPath" "../dist/sunken-sunflower-linux-amd64/*"
+                "DepotPath" "."
+                "recursive" "1"
+            }
+
+            "FileExclusion" "*.tar.gz"
+            "FileExclusion" "*.zip"
+            "FileExclusion" "*.sha256"
+
+            // Steam Pipe/SteamDeck executable
+            "SteamDeckExecutable" "sunken-sunflower"
+        }
+
+        // Your Steam Depot ID for Windows
+        "1"
+        {
+            "FileMapping"
+            {
+                "LocalPath" "../dist/sunken-sunflower-windows-amd64/*"
+                "DepotPath" "."
+                "recursive" "1"
+            }
+
+            "FileExclusion" "*.tar.gz"
+            "FileExclusion" "*.zip"
+            "FileExclusion" "*.sha256"
+        }
+
+        // Your Steam Depot ID for macOS
+        "2"
+        {
+            "FileMapping"
+            {
+                "LocalPath" "../dist/sunken-sunflower-macos-amd64/*"
+                "DepotPath" "."
+                "recursive" "1"
+            }
+
+            "FileExclusion" "*.tar.gz"
+            "FileExclusion" "*.zip"
+            "FileExclusion" "*.sha256"
+        }
+    }
+}

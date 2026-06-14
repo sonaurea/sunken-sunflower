@@ -1,0 +1,36 @@
+# ─── Go ──────────────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.cov
+vendor/
+go.work
+go.work.sum
+
+# ─── Build artifacts ────────────────────────────────────────────────
+/bin/
+/dist/
+/steam-output/
+/sunken-sunflower
+/sunken-sunflower-*
+
+# ─── Editor ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Environment ─────────────────────────────────────────────────────
+.env
+.env.local
+
+# ─── Steam SDK (not checked in) ─────────────────────────────────────
+steam/steamworks/
+steam/sdk/

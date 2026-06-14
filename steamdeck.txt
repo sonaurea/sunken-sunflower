@@ -1,0 +1,39 @@
+Sunken Sunflower — Steam Deck Tuning
+=====================================
+
+Display & Performance
+---------------------
+- Internal resolution: 1280×720 (scales cleanly to Deck's 1280×800)
+- TPS cap: 60 (smooth gameplay, < 5W TDP)
+- VSync: Enabled (prevents screen tearing on Deck LCD)
+- Runnable on unfocused: Enabled (Steam overlay, quick resume)
+- Max TPS: 60 (no turbo mode needed)
+
+Controls
+--------
+- Left stick / D-pad: Movement
+- A (South button): Action / Interact
+- B (East button): Cancel / Back
+- LB (Left bumper): Dash
+- RB (Right bumper): Companion command
+- Start: Pause / Menu
+- Back/Select: Inventory
+- F11 (KB): Toggle fullscreen
+
+Steam Input
+-----------
+- Native gamepad support via Ebitengine's standard API
+- Steam Input maps automatically when launched through Steam
+- No separate controller config needed
+
+Performance Targets
+------------------
+- 60 FPS locked at 1280×720
+- < 5W TDP on Steam Deck
+- No GPU-intensive features (all procedurally generated)
+- Stable framerate even in complex dungeon rooms
+
+Launch Options
+--------------
+Default options work out of the box. For custom configurations:
+  sunken-sunflower -fullscreen -vsync=true -tps=60
