@@ -7,6 +7,7 @@ import (
 
 	"github.com/michael/beach-dreams/internal/engine"
 	gamepkg "github.com/michael/beach-dreams/internal/game"
+	"github.com/michael/beach-dreams/internal/mods"
 	"github.com/michael/beach-dreams/internal/scenes"
 )
 
@@ -38,6 +39,12 @@ func main() {
 			}
 			log.Printf("[main] Auto-save loaded (scene: %s, depth: %d)", scene, state.CurrentDepth)
 		}
+	}
+
+	// Initialize mod sync manager (scans for mods)
+	modSync := mods.NewModSyncManager()
+	if modSync.ModCount() > 0 {
+		log.Printf("[main] %d mods found — achievements locked for this session", modSync.ModCount())
 	}
 
 	// Initialize Steam integration (stub)
@@ -72,11 +79,12 @@ func main() {
 	// Set up auto-save ticker via the Update loop
 	// We wrap the game in a save-aware adapter
 	saveGame := &SaveAwareGame{
-		Game:    game,
-		State:   state,
-		Story:   story,
-		SaveMgr: saveMgr,
-		Steam:   steam,
+		Game:              game,
+		State:             state,
+		Story:             story,
+		SaveMgr:           saveMgr,
+		Steam:             steam,
+		AchievementsLocked: modSync.AchievementsLocked,
 	}
 
 	log.Println("[main] Sunken Sunflower starting...")
@@ -92,11 +100,12 @@ func main() {
 
 type SaveAwareGame struct {
 	*engine.Game
-	State   *gamepkg.GameState
-	Story   *gamepkg.StoryManager
-	SaveMgr *gamepkg.SaveManager
-	Steam   *gamepkg.SteamIntegration
-	tick    float64
+	State              *gamepkg.GameState
+	Story              *gamepkg.StoryManager
+	SaveMgr            *gamepkg.SaveManager
+	Steam              *gamepkg.SteamIntegration
+	AchievementsLocked bool
+	tick               float64
 }
 
 func (sg *SaveAwareGame) Update() error {
@@ -127,6 +136,11 @@ func (sg *SaveAwareGame) Update() error {
 }
 
 func (sg *SaveAwareGame) checkAchievements() {
+	// Mods are active — permanently block all Steam achievements
+	if sg.AchievementsLocked {
+		return
+	}
+
 	state := sg.State
 
 	// Depth achievements

@@ -13,380 +13,305 @@ import (
 	gamepkg "github.com/michael/beach-dreams/internal/game"
 )
 
-// ─── Dungeon Scene ──────────────────────────────────────────────────
+// ─── Isometric Dungeon Scene ───────────────────────────────────────
+// Bright, visible, with rich character sprites and clear text.
 
-// Room represents a single dungeon room.
-type Room struct {
-	X, Y        float64
-	W, H        float64
-	Enemies     []*entities.Enemy
-	Cleared     bool
-	HasExit     bool // leads to next floor
-	HasChest    bool
-	ChestLooted bool
-	Type        string // "combat", "treasure", "exit", "boss"
-}
-
-// DungeonScene is the procedural dungeon crawling scene.
 type DungeonScene struct {
 	engine.BaseScene
-	camera        *gamepkg.Camera
-	player        *entities.Player
-	state         *gamepkg.GameState
-	story         *gamepkg.StoryManager
-	rooms         []*Room
-	currentRoom   int
-	tileSize      float64
-	floorComplete bool
-	exitX, exitY  float64
+	isoMap      *engine.IsoMap
+	isoConfig   engine.IsoConfig
+	isoCamera   *engine.IsoCamera
+	isoDrawer   *engine.IsoEntityDrawer
+	player      *entities.Player
+	state       *gamepkg.GameState
+	story       *gamepkg.StoryManager
+	enemies     []*entities.Enemy
+	hits        *engine.HitboxManager
+	dialogue    *engine.DialogueManager
+	gameTime    float64
+	depth       int
+	exitReached bool
 }
 
 func NewDungeonScene(state *gamepkg.GameState, story *gamepkg.StoryManager) *DungeonScene {
+	cfg := engine.DefaultIsoConfig()
 	return &DungeonScene{
-		camera:   gamepkg.NewCamera(),
-		state:    state,
-		story:    story,
-		tileSize: 32,
+		isoConfig: cfg,
+		isoCamera: engine.NewIsoCamera(cfg),
+		isoDrawer: engine.NewIsoEntityDrawer(),
+		state:     state,
+		story:     story,
+		depth:     1,
+		hits:      engine.NewHitboxManager(),
+		dialogue:  engine.NewDialogueManager(),
 	}
 }
 
 func (s *DungeonScene) Enter(g *engine.Game) {
-	// Get or create player
+	s.depth = s.state.CurrentDepth
+	s.exitReached = false
+	s.gameTime = 0
+
 	existing := g.EntityManager().Get("player")
 	if existing != nil {
 		s.player = existing.(*entities.Player)
 		s.player.SetActive(true)
 	} else {
-		s.player = entities.NewPlayer(64, 64, s.state)
+		s.player = entities.NewPlayer(1, 1, s.state)
 		g.EntityManager().Add(s.player)
 	}
 
-	// Generate dungeon floor
-	s.generateFloor()
+	s.generateDungeon()
+	s.player.SetPosition(3, 3)
+	s.isoCamera.Follow(3, 3)
+	s.isoCamera.Smoothing = 0.12
 
-	// Position player at start
-	s.player.SetPosition(64, 64)
-	s.currentRoom = 0
-	s.floorComplete = false
-
-	// Room entry narration
-	if s.state.CurrentDepth == 1 {
+	if s.depth == 1 {
 		s.story.SetFlag("entered_dungeon")
 	}
 }
 
-func (s *DungeonScene) Exit(g *engine.Game) {
-	// Keep player for scene transitions
-}
+func (s *DungeonScene) Exit(g *engine.Game) {}
 
-func (s *DungeonScene) generateFloor() {
-	s.rooms = nil
-	numRooms := 3 + s.state.CurrentDepth
-	if numRooms > 8 {
-		numRooms = 8
+func (s *DungeonScene) generateDungeon() {
+	mapW := 15 + s.depth
+	mapH := 10 + s.depth/2
+	if mapW > 35 {
+		mapW = 35
+	}
+	if mapH > 25 {
+		mapH = 25
 	}
 
-	roomW := 320.0
-	roomH := 240.0
-	spacing := 40.0
+	s.isoMap = engine.NewIsoMap(mapW, mapH, s.isoConfig)
+	s.enemies = nil
 
+	// Floor colors — bright and readable
+	brightFloor := color.RGBA{60, 55, 45, 255}
+	altFloor := color.RGBA{70, 65, 50, 255}
+	wallClr := color.RGBA{90, 60, 40, 255}
+
+	for x := 0; x < mapW; x++ {
+		for y := 0; y < mapH; y++ {
+			tile := s.isoMap.TileAt(x, y)
+			if x == 0 || y == 0 || x == mapW-1 || y == mapH-1 {
+				tile.HasWall = true
+				tile.WallColor = wallClr
+				tile.Color = color.RGBA{40, 35, 30, 255}
+			} else {
+				if (x+y)%2 == 0 {
+					tile.Color = brightFloor
+				} else {
+					tile.Color = altFloor
+				}
+			}
+		}
+	}
+
+	// Rooms with elevation visible to player
+	numRooms := 2 + s.depth/2
+	if numRooms > 6 {
+		numRooms = 6
+	}
 	for i := 0; i < numRooms; i++ {
-		room := &Room{
-			X:   float64(i) * (roomW + spacing),
-			Y:   60.0 + math.Mod(float64(i)*1.5, 3)*20,
-			W:   roomW,
-			H:   roomH,
-			HasExit:  i == numRooms-1, // last room has exit
-			HasChest: rand.Float64() < 0.3 && i > 0,
-			Type:     "combat",
+		rx := 3 + rand.Intn(mapW-6)
+		ry := 2 + rand.Intn(mapH-4)
+		rw := 3 + rand.Intn(4)
+		rh := 2 + rand.Intn(3)
+
+		for dx := -rw / 2; dx <= rw/2; dx++ {
+			for dy := -rh / 2; dy <= rh/2; dy++ {
+				t := s.isoMap.TileAt(rx+dx, ry+dy)
+				if t != nil && !t.IsExit {
+					t.HasWall = false
+					t.Color = color.RGBA{75, 70, 55, 255}
+					if (dx+dy)%2 == 0 {
+						t.Color = color.RGBA{85, 80, 60, 255}
+					}
+					t.Elevation = 0
+				}
+			}
 		}
 
-		// Spawn enemies based on depth
-		if i < numRooms-1 || rand.Float64() < 0.7 {
-			numEnemies := 1 + rand.Intn(2+s.state.CurrentDepth/2)
-			if numEnemies > 5 {
-				numEnemies = 5
+		if i > 0 {
+			numEnemies := 1 + rand.Intn(1+s.depth/3)
+			if numEnemies > 3 {
+				numEnemies = 3
 			}
 			for j := 0; j < numEnemies; j++ {
-				ex := room.X + 40 + rand.Float64()*(roomW-80)
-				ey := room.Y + 40 + rand.Float64()*(roomH-80)
-				var etype entities.EnemyType
-				switch rand.Intn(4) {
-				case 0:
-					etype = entities.EnemyBasic
-				case 1:
-					etype = entities.EnemyCharger
-				case 2:
-					etype = entities.EnemyRanged
-				case 3:
-					etype = entities.EnemySwarm
-				}
+				ex := rx + rand.Intn(rw) - rw/2
+				ey := ry + rand.Intn(rh) - rh/2
+				etype := []entities.EnemyType{
+					entities.EnemyBasic, entities.EnemyCharger,
+					entities.EnemyRanged, entities.EnemySwarm,
+				}[rand.Intn(4)]
 				enemy := entities.NewEnemy(
 					fmt.Sprintf("enemy_%d_%d", i, j),
-					ex, ey, etype, s.state.CurrentDepth,
+					float64(ex), float64(ey), etype, s.depth,
 				)
-				room.Enemies = append(room.Enemies, enemy)
+				s.enemies = append(s.enemies, enemy)
 			}
 		}
-
-		if room.HasExit {
-			room.Type = "exit"
-		}
-		if room.HasChest && room.Type != "exit" {
-			room.Type = "treasure"
-		}
-
-		s.rooms = append(s.rooms, room)
 	}
 
-	// Exit position
-	last := s.rooms[len(s.rooms)-1]
-	s.exitX = last.X + last.W/2
-	s.exitY = last.Y + last.H/2
+	exitX := mapW - 3
+	exitY := mapH / 2
+	exitTile := s.isoMap.TileAt(exitX, exitY)
+	if exitTile != nil {
+		exitTile.IsExit = true
+		exitTile.Color = color.RGBA{255, 215, 0, 255}
+		exitTile.Elevation = 1.5
+	}
 }
 
 func (s *DungeonScene) Update(g *engine.Game) {
 	dt := g.DeltaTime()
+	s.gameTime += dt
 
-	if s.floorComplete {
-		// Walk to exit
-		px, py := s.player.Position()
-		dx := s.exitX - px
-		dy := s.exitY - py
-		dist := math.Sqrt(dx*dx + dy*dy)
-		if dist > 10 {
-			s.player.SetPosition(
-				px+(dx/dist)*s.player.Speed*dt,
-				py+(dy/dist)*s.player.Speed*dt,
-			)
-		}
-
-		// Exit area reached — go back to town or next floor
-		if dist < 30 {
-			s.state.MaxDepth = s.state.CurrentDepth
-			g.SceneManager().SwitchTo("town", g)
-		}
-		return
-	}
-
-	// Update player
-	s.player.Update(g)
-
-	// Check player death
-	if !s.player.Active {
-		s.player.Health = s.player.MaxHealth * 0.5
-		s.player.Active = true
-		s.state.CurrentDepth = 1
+	if s.exitReached {
+		s.state.MaxDepth = s.depth
+		s.state.CurrentDepth = s.depth + 1
 		g.SceneManager().SwitchTo("town", g)
 		return
 	}
 
-	// Update enemies in current room
-	current := s.getCurrentRoom()
-	if current != nil && !current.Cleared {
-		allDead := true
-		for _, enemy := range current.Enemies {
-			if enemy.IsActive() {
-				enemy.Update(g)
-				allDead = false
+	// Dialogue takes priority
+	if s.dialogue.Active {
+		s.dialogue.Update(dt)
+		if g.Input().ActionJustPressed {
+			s.dialogue.Advance()
+		}
+		return
+	}
+
+	s.player.Update(g)
+
+	if !s.player.Active {
+		s.player.Health = s.player.MaxHealth * 0.5
+		s.player.Active = true
+		g.SceneManager().SwitchTo("dream", g)
+		return
+	}
+
+	// Update enemies
+	allDead := true
+	for _, enemy := range s.enemies {
+		if enemy.IsActive() {
+			enemy.Update(g)
+			allDead = false
+		}
+	}
+
+	if allDead && len(s.enemies) > 0 {
+		for _, enemy := range s.enemies {
+			drops := enemy.GetDrops()
+			for item, count := range drops {
+				s.state.AddResource(item, count)
 			}
 		}
-
-		// Check if room is cleared
-		if allDead && len(current.Enemies) > 0 {
-			current.Cleared = true
-			s.state.TotalKills += len(current.Enemies)
-
-			// Drop resources
-			for _, enemy := range current.Enemies {
-				drops := enemy.GetDrops()
-				for item, count := range drops {
-					s.state.AddResource(item, count)
+		s.state.TotalKills += len(s.enemies)
+		for x := 0; x < s.isoMap.Width; x++ {
+			for y := 0; y < s.isoMap.Height; y++ {
+				t := s.isoMap.TileAt(x, y)
+				if t != nil && t.IsExit {
+					t.Elevation = 2.5
 				}
 			}
-
-			// Chest in treasure rooms
-			if current.HasChest && !current.ChestLooted {
-				s.chestLoot(current)
-			}
 		}
+		s.dialogue.Enqueue([]engine.DialogueLine{
+			{Speaker: "Narrator", Text: "All enemies defeated. The exit glows ahead.", Color: engine.ColSunflower, PortraitClr: engine.ColSunflower},
+		})
 	}
 
-	// Move to next room if at right edge
 	px, py := s.player.Position()
-	if current != nil && px > current.X+current.W-20 {
-		if s.currentRoom < len(s.rooms)-1 {
-			s.currentRoom++
-			s.player.SetPosition(s.rooms[s.currentRoom].X+10, py)
-		}
-	}
-	// Move to previous room
-	if current != nil && px < current.X+10 {
-		if s.currentRoom > 0 {
-			s.currentRoom--
-			s.player.SetPosition(s.rooms[s.currentRoom].X+s.rooms[s.currentRoom].W-20, py)
+	exitX, exitY := s.isoMap.Width-3, s.isoMap.Height/2
+	exitTile := s.isoMap.TileAt(exitX, exitY)
+	if exitTile != nil && exitTile.IsExit {
+		dx := px - float64(exitX)
+		dy := py - float64(exitY)
+		if math.Sqrt(dx*dx+dy*dy) < 2.5 {
+			s.exitReached = true
 		}
 	}
 
-	// Clamp player to current room
-	if current != nil {
-		px, py := s.player.Position()
-		if px < current.X {
-			px = current.X
-		}
-		if px > current.X+current.W {
-			px = current.X + current.W
-		}
-		if py < current.Y {
-			py = current.Y
-		}
-		if py > current.Y+current.H {
-			py = current.Y + current.H
-		}
-		s.player.SetPosition(px, py)
+	// Clamp
+	if px < 1 {
+		px = 1
 	}
-
-	// Camera follows player
-	mapWidth := s.rooms[len(s.rooms)-1].X + s.rooms[len(s.rooms)-1].W + 100
-	mapHeight := 500.0
-	s.camera.Follow(px, py, engine.ScreenWidth, engine.ScreenHeight, mapWidth, mapHeight)
-
-	// Check if all rooms cleared and exit reached
-	if current != nil && current.HasExit && current.Cleared {
-		s.floorComplete = true
-		s.state.CurrentDepth++
+	if py < 1 {
+		py = 1
 	}
+	if px > float64(s.isoMap.Width)-2 {
+		px = float64(s.isoMap.Width) - 2
+	}
+	if py > float64(s.isoMap.Height)-2 {
+		py = float64(s.isoMap.Height) - 2
+	}
+	s.player.SetPosition(px, py)
+
+	s.isoCamera.Follow(px, py)
+	s.isoCamera.Update()
 }
 
 func (s *DungeonScene) Draw(screen *ebiten.Image, g *engine.Game) {
-	// Dungeon background
-	screen.Fill(color.RGBA{10, 10, 30, 255}) // deep dark
+	// Warm dungeon background
+	screen.Fill(color.RGBA{25, 22, 18, 255})
 
-	// Draw rooms
-	for _, room := range s.rooms {
-		s.drawRoom(screen, room, g)
+	camX, camY := s.isoCamera.ScreenOffset()
+
+	// Draw isometric map — bright and visible
+	if s.isoMap != nil {
+		s.isoMap.Draw(screen, camX, camY)
 	}
 
-	// Draw enemies in current room
-	current := s.getCurrentRoom()
-	if current != nil {
-		for _, enemy := range current.Enemies {
-			if enemy.IsActive() {
-				enemy.Draw(screen, g)
-			}
+	// Draw enemies with isometric depth
+	s.isoDrawer = engine.NewIsoEntityDrawer()
+	for _, enemy := range s.enemies {
+		if !enemy.IsActive() {
+			continue
 		}
+		ex, ey := enemy.Position()
+		sx, sy := engine.WorldToScreen(ex, ey, 0.3, s.isoConfig, camX, camY)
+		enemyCopy := enemy
+		s.isoDrawer.Add(sx, sy, ex+ey, func(img *ebiten.Image) {
+			enemyCopy.Draw(img, g)
+		})
 	}
 
-	// Draw exit marker
-	if s.floorComplete {
-		engine.DrawGlow(screen, s.exitX, s.exitY, 30, engine.ColBio)
-		engine.DrawText(screen, "EXIT → TOWN", int(s.exitX)-40, int(s.exitY)-30, engine.ColBio)
+	// Draw player
+	px, py := s.player.Position()
+	psx, psy := engine.WorldToScreen(px, py, 0.6, s.isoConfig, camX, camY)
+	s.isoDrawer.Add(psx, psy, px+py+1, func(img *ebiten.Image) {
+		s.player.Draw(img, g)
+	})
+	s.isoDrawer.Draw(screen)
+
+	// HUD — ALWAYS on top, dark background for readability
+	engine.DrawRect(screen, 0, 0, 550, 28, color.RGBA{0, 0, 0, 180})
+	hudStr := fmt.Sprintf("Well: Depth %d | HP: %.0f/%.0f | Enemies: %d",
+		s.depth, s.player.Health, s.player.MaxHealth, s.countAlive())
+	engine.DrawText(screen, hudStr, 10, 20, engine.ColWhite)
+
+	// Controls at bottom — dark background
+	engine.DrawRect(screen, 0, engine.ScreenHeight-22, engine.ScreenWidth, 22, color.RGBA{0, 0, 0, 180})
+	engine.DrawText(screen, "WASD: Move | Shift: Dash | Defeat all enemies → Golden Exit",
+		10, engine.ScreenHeight-7, engine.ColWhite)
+
+	// Mini-map
+	if s.isoMap != nil {
+		engine.DrawIsoMinimap(screen, s.isoMap, px, py)
 	}
 
-	// HUD
-	depthStr := fmt.Sprintf("Well Depth: %d | Room: %d/%d | HP: %.0f/%.0f",
-		s.state.CurrentDepth, s.currentRoom+1, len(s.rooms),
-		s.player.Health, s.player.MaxHealth)
-	engine.DrawRect(screen, 0, 0, 600, 25, engine.ColMidnight)
-	engine.DrawText(screen, depthStr, 10, 18, engine.ColWhite)
-
-	// Controls hint
-	engine.DrawText(screen, "WASD: Move | Shift: Dash | Clear all rooms to descend",
-		10, engine.ScreenHeight-10, engine.ColWhite)
-
-	// Inventory quick view
-	invY := 30
-	for res, count := range s.state.Inventory {
-		if count > 0 {
-			invStr := fmt.Sprintf("%s: %d", res, count)
-			engine.DrawText(screen, invStr, 10, invY+18, engine.ColSunflower)
-			invY += 18
-			if invY > 150 {
-				break
-			}
-		}
-	}
+	// Dialogue on top of everything
+	s.dialogue.Draw(screen)
 }
 
-func (s *DungeonScene) drawRoom(screen *ebiten.Image, room *Room, g *engine.Game) {
-	// Room floor
-	floorClr := color.RGBA{30, 30, 50, 255}
-	if room.Cleared {
-		floorClr = color.RGBA{40, 40, 60, 255}
-	}
-	engine.DrawRect(screen, room.X, room.Y, room.W, room.H, floorClr)
-
-	// Room border
-	borderClr := color.RGBA{80, 80, 120, 255}
-	if room.HasExit {
-		borderClr = engine.ColBio
-	}
-	engine.DrawRect(screen, room.X, room.Y, room.W, 2, borderClr)
-	engine.DrawRect(screen, room.X, room.Y, 2, room.H, borderClr)
-	engine.DrawRect(screen, room.X+room.W-2, room.Y, 2, room.H, borderClr)
-	engine.DrawRect(screen, room.X, room.Y+room.H-2, room.W, 2, borderClr)
-
-	// Room label
-	label := ""
-	idx := s.getRoomIndex(room)
-	switch room.Type {
-	case "combat":
-		if !room.Cleared {
-			label = fmt.Sprintf("⚔ Room %d", idx+1)
-		} else {
-			label = fmt.Sprintf("✓ Room %d", idx+1)
-		}
-	case "treasure":
-		if room.ChestLooted {
-			label = fmt.Sprintf("□ Room %d (Looted)", idx+1)
-		} else {
-			label = fmt.Sprintf("■ Room %d (Treasure!)", idx+1)
-		}
-	case "exit":
-		label = fmt.Sprintf("▼ Room %d (Exit)", idx+1)
-	}
-	engine.DrawText(screen, label, int(room.X)+10, int(room.Y)+15, engine.ColWhite)
-
-	// Draw chest
-	if room.HasChest && !room.ChestLooted {
-		cx := room.X + room.W/2 - 12
-		cy := room.Y + room.H/2 - 12
-		engine.DrawRect(screen, cx, cy, 24, 20, engine.ColSunflower)
-		engine.DrawRect(screen, cx+4, cy-4, 16, 6, engine.ColBrown)
-	}
-
-	// Room connection indicator (next room arrow)
-	if idx < len(s.rooms)-1 && room.Cleared {
-		arrowX := room.X + room.W - 16
-		arrowY := room.Y + room.H/2
-		engine.DrawCircle(screen, arrowX, arrowY, 6, engine.ColGreen)
-		engine.DrawText(screen, "▶", int(arrowX)-4, int(arrowY)+5, engine.ColWhite)
-	}
-}
-
-func (s *DungeonScene) getCurrentRoom() *Room {
-	if s.currentRoom >= 0 && s.currentRoom < len(s.rooms) {
-		return s.rooms[s.currentRoom]
-	}
-	return nil
-}
-
-func (s *DungeonScene) getRoomIndex(room *Room) int {
-	for i, r := range s.rooms {
-		if r == room {
-			return i
+func (s *DungeonScene) countAlive() int {
+	c := 0
+	for _, e := range s.enemies {
+		if e.IsActive() {
+			c++
 		}
 	}
-	return -1
-}
-
-func (s *DungeonScene) chestLoot(room *Room) {
-	room.ChestLooted = true
-	// Random loot
-	loot := []string{"moon_sand", "starfruit", "well_shard", "gold"}
-	item := loot[rand.Intn(len(loot))]
-	count := 1 + rand.Intn(5)
-	s.state.AddResource(item, count)
-	s.state.TotalGold += rand.Intn(20)
-	_ = item // used for logging in future
+	return c
 }

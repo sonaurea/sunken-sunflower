@@ -1,0 +1,55 @@
+# ─── Sunken Sunflower — CI Build Container ──────────────────────────
+# Multi-platform build environment for all target SKUs.
+# Uses Debian slim with all cross-compilation toolchains.
+
+FROM debian:bookworm-slim AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# ─── System deps (Ebitengine + base tooling) ────────────────────────
+RUN apt-get update -qq && apt-get install -y -qq \
+    curl git build-essential pkg-config \
+    libgl1-mesa-dev xorg-dev libx11-dev libxcursor-dev \
+    libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
+    # Windows cross-compilation
+    gcc-mingw-w64-x86-64 \
+    # macOS cross-compilation (OSXCross)
+    clang llvm lld \
+    # Mobile
+    openjdk-17-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# ─── Go ─────────────────────────────────────────────────────────────
+ARG GO_VERSION=1.26.4
+RUN curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | \
+    tar -C /usr/local -xz
+ENV PATH=/usr/local/go/bin:/root/go/bin:$PATH
+
+# ─── OSXCross (macOS cross-compiler) ───────────────────────────────
+RUN git clone --depth=1 https://github.com/tpoechtrager/osxcross.git /opt/osxcross
+WORKDIR /opt/osxcross
+ENV OSXCROSS_HOST=x86_64-apple-darwin24
+ENV PATH=/opt/osxcross/bin:$PATH
+# Note: You need to place MacOS SDK tarball in /opt/osxcross/tarballs/
+# Download from: https://github.com/phracker/MacOSX-SDKs/releases
+
+# ─── Android NDK ────────────────────────────────────────────────────
+RUN curl -sSL "https://dl.google.com/android/repository/android-ndk-r27-linux.zip" \
+    -o /tmp/ndk.zip && \
+    unzip -q /tmp/ndk.zip -d /opt && \
+    rm /tmp/ndk.zip
+ENV ANDROID_NDK_HOME=/opt/android-ndk-r27
+ENV PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+# ─── Mobile build tools (gomobile) ──────────────────────────────────
+RUN go install golang.org/x/mobile/cmd/gomobile@latest && \
+    gomobile init
+
+# ─── Ebitengine mobile bindings ──────────────────────────────────────
+RUN go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@latest
+
+WORKDIR /workspace
+COPY . .
+
+# ─── Default: run tests ─────────────────────────────────────────────
+CMD ["go", "test", "./...", "-count=1", "-timeout=120s"]
