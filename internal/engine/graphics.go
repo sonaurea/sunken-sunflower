@@ -15,10 +15,12 @@ func DrawCircle(target *ebiten.Image, cx, cy, radius float64, clr color.Color) {
 	if radius <= 0 {
 		return
 	}
+	//nolint:staticcheck // DrawFilledCircle deprecated in v2.9, migrate when upgrading Ebitengine
 	vector.DrawFilledCircle(target, float32(cx), float32(cy), float32(radius), clr, true)
 }
 
 func DrawRect(target *ebiten.Image, x, y, w, h float64, clr color.Color) {
+	//nolint:staticcheck // DrawFilledRect deprecated in v2.9, migrate when upgrading Ebitengine
 	vector.DrawFilledRect(target, float32(x), float32(y), float32(w), float32(h), clr, true)
 }
 

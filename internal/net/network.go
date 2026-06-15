@@ -31,7 +31,9 @@ type PeerID [8]byte
 
 func NewPeerID() PeerID {
 	var id PeerID
-	rand.Read(id[:])
+	if _, err := rand.Read(id[:]); err != nil {
+		log.Printf("[net] warning: failed to generate random peer ID: %v", err)
+	}
 	return id
 }
 
@@ -262,7 +264,9 @@ func (nm *NetworkManager) Connect(host string, port int) error {
 		SeqNum:   0,
 	}
 	data, _ := json.Marshal(joinMsg)
-	conn.Write(data)
+	if _, err := conn.Write(data); err != nil {
+		log.Printf("[net] failed to send join message: %v", err)
+	}
 
 	go nm.receiveLoop()
 
@@ -287,7 +291,9 @@ func (nm *NetworkManager) Disconnect() {
 	}
 	data, _ := json.Marshal(leaveMsg)
 	if nm.udpConn != nil {
-		nm.udpConn.Write(data)
+		if _, err := nm.udpConn.Write(data); err != nil {
+			log.Printf("[net] failed to send leave message: %v", err)
+		}
 		nm.udpConn.Close()
 	}
 
@@ -323,7 +329,9 @@ func (nm *NetworkManager) broadcast(msg Message) {
 		if conn.PeerID == nm.peerID {
 			continue // skip self
 		}
-		nm.sendTo(conn.Addr, msg)
+		if err := nm.sendTo(conn.Addr, msg); err != nil {
+			nm.PacketsLost++
+		}
 	}
 }
 
@@ -336,7 +344,7 @@ func (nm *NetworkManager) receiveLoop() {
 		default:
 		}
 
-		nm.udpConn.SetReadDeadline(time.Now().Add(time.Second))
+		_ = nm.udpConn.SetReadDeadline(time.Now().Add(time.Second))
 		n, addr, err := nm.udpConn.ReadFromUDP(buf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
@@ -441,7 +449,9 @@ func (nm *NetworkManager) handleMessage(msg Message, addr *net.UDPAddr) {
 	case MsgPing:
 		// Respond with pong
 		pong := Message{Type: MsgPong, SenderID: nm.peerID}
-		nm.sendTo(addr, pong)
+		if err := nm.sendTo(addr, pong); err != nil {
+			nm.PacketsLost++
+		}
 
 	case MsgPong:
 		if conn, ok := nm.players[msg.SenderID]; ok {
@@ -498,7 +508,9 @@ func (nm *NetworkManager) broadcastLobby() {
 	}
 	for _, conn := range nm.players {
 		if conn.PeerID != nm.peerID {
-			nm.sendTo(conn.Addr, msg)
+			if err := nm.sendTo(conn.Addr, msg); err != nil {
+				nm.PacketsLost++
+			}
 		}
 	}
 }
@@ -560,7 +572,9 @@ func (nm *NetworkManager) SendInput(input InputPayload) {
 	nm.mu.RUnlock()
 	if conn != nil {
 		data, _ := json.Marshal(msg)
-		conn.Write(data)
+		if _, err := conn.Write(data); err != nil {
+			log.Printf("[net] failed to send input: %v", err)
+		}
 	}
 }
 
@@ -605,7 +619,7 @@ func DiscoverLAN(timeout time.Duration) ([]DiscoveredHost, error) {
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		conn.SetReadDeadline(deadline)
+		_ = conn.SetReadDeadline(deadline)
 		buf := make([]byte, 1024)
 		n, _, err := conn.ReadFromUDP(buf)
 		if err != nil {
@@ -646,6 +660,8 @@ func (nm *NetworkManager) AdvertiseLAN() {
 		if !nm.running {
 			return
 		}
-		conn.Write(data)
+		if _, err := conn.Write(data); err != nil {
+			log.Printf("[net] failed to advertise: %v", err)
+		}
 	}
 }

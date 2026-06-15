@@ -89,8 +89,8 @@ func (i *Input) pollGamepad() {
 	// Use the first gamepad
 	id := gamepadIDs[0]
 
-	i.GamepadLX = ebiten.GamepadAxis(id, 0)
-	i.GamepadLY = ebiten.GamepadAxis(id, 1)
+	i.GamepadLX = ebiten.GamepadAxisValue(id, 0)
+	i.GamepadLY = ebiten.GamepadAxisValue(id, 1)
 
 	// Standard gamepad button layout (Xbox-style):
 	// 0=A(south), 1=B(east), 2=X(west), 3=Y(north)

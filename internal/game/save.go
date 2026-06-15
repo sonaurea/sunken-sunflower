@@ -236,6 +236,7 @@ func (si *SteamIntegration) UnlockAchievement(id string) bool {
 	si.Achievements[id] = true
 	if si.Initialized {
 		// TODO: SteamAPI_UserStats()->SetAchievement(id)
+		_ = si.Initialized // placeholder: will call Steam API here
 	}
 	return true
 }
@@ -245,6 +246,7 @@ func (si *SteamIntegration) SetStat(name string, value int) bool {
 	si.Stats[name] = value
 	if si.Initialized {
 		// TODO: SteamAPI_UserStats()->SetStat(name, value)
+		_ = si.Initialized // placeholder: will call Steam API here
 	}
 	return true
 }

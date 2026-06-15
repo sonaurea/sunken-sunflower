@@ -23,7 +23,7 @@ func DrawText(screen *ebiten.Image, str string, x, y int, clr color.Color) {
 
 // textBound returns the bounding rectangle for a string using the default font.
 func textBound(str string) (int, int) {
-	b := text.BoundString(DefaultFace, str)
+	b := text.BoundString(DefaultFace, str) //nolint:staticcheck // BoundString deprecated in v2.6, migrate when upgrading Ebitengine
 	return b.Dx(), b.Dy()
 }
 
