@@ -1,5 +1,7 @@
 # ─── golangci-lint Configuration ─────────────────────────────────────
 # Run with: golangci-lint run ./...
+# Requires golangci-lint v2.0+ (golangci-lint-action@v9 uses v2 config format)
+version: "2"
 linters:
   enable:
     - gofmt        # Ensures code is gofmt-ed
