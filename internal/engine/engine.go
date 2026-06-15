@@ -105,13 +105,15 @@ type Entity interface {
 }
 
 // BaseEntity provides defaults for entities.
+// Concrete entities embed BaseEntity and override Draw() for sprite rendering.
+// Animated entities should embed AnimatedEntity (from animation.go) for
+// full sprite, animation, and transform support.
 type BaseEntity struct {
 	IDValue   string
 	X, Y      float64
 	Active    bool
 	Direction int // 0=down, 1=up, 2=left, 3=right
 	Speed     float64
-	Sprite    *ebiten.Image
 }
 
 func (e *BaseEntity) ID() string                   { return e.IDValue }
@@ -121,11 +123,8 @@ func (e *BaseEntity) IsActive() bool               { return e.Active }
 func (e *BaseEntity) SetActive(active bool)        { e.Active = active }
 func (e *BaseEntity) Update(g *Game)               {}
 func (e *BaseEntity) Draw(screen *ebiten.Image, g *Game) {
-	if e.Sprite != nil && e.Active {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(e.X, e.Y)
-		screen.DrawImage(e.Sprite, op)
-	}
+	// No-op: concrete entities override Draw().
+	// Use AnimatedEntity.Draw(screen, x, y) for sprite rendering.
 }
 
 // ─── EntityManager ──────────────────────────────────────────────────

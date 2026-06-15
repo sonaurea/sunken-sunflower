@@ -81,19 +81,22 @@ jobs:
       - name: Test with race detector
         run: go test ./internal/... -race -count=1 -timeout=90s
 
-      - name: Generate coverage report
-        run: go test ./internal/... -coverprofile=coverage.out -covermode=atomic -count=1
+      - name: Generate coverage report & enforce baseline
+        run: scripts/check-coverage.sh
+        env:
+          DISPLAY: ":99"
 
-      - name: Check coverage threshold (≥70%)
-        run: |
-          go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | sed 's/%//' | \
-          awk '{if ($1 < 70) {print "Coverage " $1 "% < 70% — FAIL"; exit 1}}'
-
-      - name: Upload coverage
+      - name: Upload HTML coverage report
         uses: actions/upload-artifact@v7
         with:
-          name: coverage
-          path: coverage.out
+          name: coverage-html
+          path: coverage.html
+
+      - name: Upload JSON coverage summary
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-json
+          path: coverage.json
 
   build:
     name: Build (${{ matrix.os }}-${{ matrix.arch }})

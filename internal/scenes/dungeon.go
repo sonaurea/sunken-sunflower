@@ -61,7 +61,7 @@ func (s *DungeonScene) Enter(g *engine.Game) {
 		g.EntityManager().Add(s.player)
 	}
 
-	s.generateDungeon()
+	s.generateDungeon(g)
 	s.player.SetPosition(3, 3)
 	s.isoCamera.Follow(3, 3)
 	s.isoCamera.Smoothing = 0.12
@@ -71,9 +71,16 @@ func (s *DungeonScene) Enter(g *engine.Game) {
 	}
 }
 
-func (s *DungeonScene) Exit(g *engine.Game) {}
+func (s *DungeonScene) Exit(g *engine.Game) {
+	// Remove dungeon entities from global EntityManager on exit
+	em := g.EntityManager()
+	for _, enemy := range s.enemies {
+		em.Remove(enemy.ID())
+	}
+	s.enemies = nil
+}
 
-func (s *DungeonScene) generateDungeon() {
+func (s *DungeonScene) generateDungeon(g *engine.Game) {
 	mapW := 15 + s.depth
 	mapH := 10 + s.depth/2
 	if mapW > 35 {
@@ -150,21 +157,23 @@ func (s *DungeonScene) generateDungeon() {
 					float64(ex), float64(ey), etype, s.depth,
 				)
 				s.enemies = append(s.enemies, enemy)
+				// Register with global EntityManager for lifecycle tracking
+				g.EntityManager().Add(enemy)
 			}
 		}
+		}
+	
+		exitX := mapW - 3
+		exitY := mapH / 2
+		exitTile := s.isoMap.TileAt(exitX, exitY)
+		if exitTile != nil {
+			exitTile.IsExit = true
+			exitTile.Color = color.RGBA{255, 215, 0, 255}
+			exitTile.Elevation = 1.5
+		}
 	}
-
-	exitX := mapW - 3
-	exitY := mapH / 2
-	exitTile := s.isoMap.TileAt(exitX, exitY)
-	if exitTile != nil {
-		exitTile.IsExit = true
-		exitTile.Color = color.RGBA{255, 215, 0, 255}
-		exitTile.Elevation = 1.5
-	}
-}
-
-func (s *DungeonScene) Update(g *engine.Game) {
+	
+	func (s *DungeonScene) Update(g *engine.Game) {
 	dt := g.DeltaTime()
 	s.gameTime += dt
 

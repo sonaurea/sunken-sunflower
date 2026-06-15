@@ -1,0 +1,118 @@
+{
+    "version": 1,
+    "threshold_pct": 70,
+    "files": {
+        "internal/engine/engine.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/animation.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/audio.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/dialogue.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/effects.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/environment.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/flood.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/font.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/graphics.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/hitbox.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/input.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/isometric.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/palette.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/settings.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/synth.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/engine/turnbased.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/entities/sunflower.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/entities/companion.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/entities/enemy.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/game/state.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/game/combat.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/game/save.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/game/seasons.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/game/creatures.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/mods/modsync.go": {
+            "covered": 0.0,
+            "must_stay": false
+        },
+        "internal/net/network.go": {
+            "covered": 0.0,
+            "must_stay": false
+        }
+    },
+    "exempt": [
+        "main.go",
+        "internal/scenes/titlescene.go",
+        "internal/scenes/townscene.go",
+        "internal/scenes/dungeon.go",
+        "internal/scenes/dreamscene.go"
+    ],
+    "notes": "Set must_stay=true for files that reach 100% coverage. Exempt files are those requiring Ebitengine display or async entry points."
+}
