@@ -1,8 +1,10 @@
 # ─── golangci-lint Configuration ─────────────────────────────────────
 # Run with: golangci-lint run ./...
-# Requires golangci-lint v2.0+ (golangci-lint-action@v9 uses v2 config format)
+# v2 config format (required by golangci-lint v2+)
 version: "2"
+
 linters:
+  default: none
   enable:
     - gofmt        # Ensures code is gofmt-ed
     - govet        # Reports suspicious constructs
@@ -13,17 +15,16 @@ linters:
     - unused       # Detects unused code
     - misspell     # Catches common misspellings
     - revive       # Extensible linter (replaces golint)
-
-linters-settings:
-  gofmt:
-    simplify: true
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-  misspell:
-    ignore-words:
-      - Crystalisk  # fictional creature name, not a misspelling
+  settings:
+    gofmt:
+      simplify: true
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+    misspell:
+      ignore-words:
+        - Crystalisk  # fictional creature name, not a misspelling
 
 issues:
   exclude-rules:
